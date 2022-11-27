@@ -7,7 +7,8 @@ namespace ServerAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserController : Controller
+    [Authorize]
+    public class UserController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
@@ -77,7 +78,7 @@ namespace ServerAPI.Controllers
 
             if (result.Succeeded)
             {
-                return Ok(new { Token = _jwtGenerator.CreateToken(user) });
+                return Ok(new { token = $"Bearer {_jwtGenerator.CreateToken(user)}" });
             }
             else
             {
@@ -85,6 +86,16 @@ namespace ServerAPI.Controllers
 
                 return BadRequest(error);
             }
+        }
+
+        //[AllowAnonymous]
+        [HttpGet]
+        [Route("Test")]
+        public IActionResult Test()
+        {
+            var res = "All Good";
+
+            return Ok(res); 
         }
     }
 }

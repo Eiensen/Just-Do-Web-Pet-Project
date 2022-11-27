@@ -8,6 +8,7 @@ global using Microsoft.IdentityModel.Tokens;
 global using ServerAPI.Servieces.JWT;
 global using ServerAPI.Servieces.Validators;
 global using System.Text;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,8 @@ builder.Services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
+builder.Services.AddSingleton<IJWTServiece, JWTServiece>();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -35,17 +38,16 @@ builder.Services.AddAuthentication(options =>
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
-                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidIssuer = builder.Configuration.GetSection("Jwt:Issuer").Value,
                         ValidateAudience = true,
-                        ValidAudience = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration.GetSection("Jwt:Issuer").Value,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes
                         (
-                            builder.Configuration["Jwt:Key"]
+                            builder.Configuration.GetSection("Jwt:Key").Value
                         )),
                         ValidateIssuerSigningKey = true,
                     };
                 });
-builder.Services.AddScoped<JWTServiece, JWTServiece>();
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
@@ -60,10 +62,38 @@ builder.Services.Configure<IdentityOptions>(options =>
 builder.Services.AddTransient<IPasswordValidator<User>,
     PasswordValidator>(serv => new PasswordValidator(1));
 
+var securityScheme = new OpenApiSecurityScheme()
+{
+    Name = "Authorization",
+    Type = SecuritySchemeType.ApiKey,
+    Scheme = "Bearer",
+    BearerFormat = "JWT",
+    In = ParameterLocation.Header,
+    Description = "JSON Web Token based security",
+};
+
+var securityReq = new OpenApiSecurityRequirement()
+{
+    {
+        new OpenApiSecurityScheme
+        {
+            Reference = new OpenApiReference
+            {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+            }
+        },
+        new string[] {}
+    }
+};
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", securityScheme);
+    options.AddSecurityRequirement(securityReq);
+});
 
 var app = builder.Build();
 

@@ -1,7 +1,6 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+
 
 namespace ServerAPI.Servieces.JWT
 {
@@ -15,10 +14,10 @@ namespace ServerAPI.Servieces.JWT
         {
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes
                     (
-                        configuration["Jwt:Key"]
+                        configuration.GetSection("Jwt:Key").Value
                     ));
 
-            this._configuration = configuration;
+            _configuration = configuration;
         }
 
         public string CreateToken(User user)
@@ -34,8 +33,8 @@ namespace ServerAPI.Servieces.JWT
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Issuer = _configuration["Jwt:Issuer"],
-                Audience = _configuration["Jwt:Issuer"],
+                Issuer = _configuration.GetSection("Jwt:Issuer").Value,
+                Audience = _configuration.GetSection("Jwt:Issuer").Value,
                 Expires = DateTime.UtcNow.AddMonths(6),
                 SigningCredentials = credentials
             };
